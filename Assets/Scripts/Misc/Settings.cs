@@ -4,8 +4,8 @@ using UnityEngine;
 
 public static class Settings
 {
-    public static long totalIteration;
-    public static long curTotalIteration;
+    public static int totalIteration;
+    public static int curTotalIteration;
     public static int totalGuessedAmount;
     public static int curTotalGuessedAmount;
     public static int totalGuessedTexts;

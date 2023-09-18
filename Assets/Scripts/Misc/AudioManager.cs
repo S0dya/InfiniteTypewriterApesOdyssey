@@ -4,7 +4,7 @@ using UnityEngine;
 using FMODUnity;
 using FMOD.Studio;
 
-public class AudioManager : SingletonMonobehaviour<AudioManager>
+public class AudioManager : MonoBehaviour
 {
     List<EventInstance> eventInstances;
     List<StudioEventEmitter> eventEmitters;
@@ -21,10 +21,8 @@ public class AudioManager : SingletonMonobehaviour<AudioManager>
     Coroutine fadeOutCoroutine;
     Coroutine randomSFXCor;
 
-    protected override void Awake()
+    void Awake()
     {
-        base.Awake();
-
         eventInstances = new List<EventInstance>();
         eventEmitters = new List<StudioEventEmitter>();
         EventInstancesDict = new Dictionary<string, EventInstance>();

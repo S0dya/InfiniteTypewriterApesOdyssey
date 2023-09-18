@@ -6,8 +6,10 @@ using TMPro;
 using System.Linq;
 using static LeanTween;
 
-public class GameManager : SingletonMonobehaviour<GameManager>, ISaveable
+public class GameManager : MonoBehaviour
 {
+    [SerializeField] AudioManager audioManager;
+
     [SerializeField] TMP_InputField inputTextField;
 
     [SerializeField] TextMeshProUGUI[] stats;//0 totalIterationAmount 1 curTotalIteration 2 totalGuessedAmount 3 curTotalGuessedAmount 4 totalGuessedTexts 5 longestTextGuessed
@@ -34,20 +36,9 @@ public class GameManager : SingletonMonobehaviour<GameManager>, ISaveable
 
     Coroutine guessCor;
 
-    GameObjectSave _gameObjectSave;
-    public GameObjectSave GameObjectSave { get { return _gameObjectSave; } set { _gameObjectSave = value; } }
-
-
-    protected override void Awake()
-    {
-        base.Awake();
-        GameObjectSave = new GameObjectSave();
-
-    }
-
     void Start()
     {
-        SaveManager.I.LoadDataFromFile();
+        LoadData();
         Clear();
 
         if (Settings.firstTime)
@@ -106,7 +97,7 @@ public class GameManager : SingletonMonobehaviour<GameManager>, ISaveable
     {
         bool cur = !Settings.isMusicEnabled;
         Settings.isMusicEnabled = cur;
-        AudioManager.I.ToggleSFX(cur);
+        audioManager.ToggleSFX(cur);
         if (cur)
         {
             musicButtonImage.color = musicOnColor;
@@ -128,7 +119,7 @@ public class GameManager : SingletonMonobehaviour<GameManager>, ISaveable
 
     public void OnButtonSound()
     {
-        AudioManager.I.PlayOneShot("Button");
+        audioManager.PlayOneShot("Button");
     }
     //methods
     void ConverText(string text)
@@ -225,7 +216,7 @@ public class GameManager : SingletonMonobehaviour<GameManager>, ISaveable
 
     void CompleteGuessing()
     {
-        AudioManager.I.PlayOneShot("Finished");
+        audioManager.PlayOneShot("Finished");
         Settings.totalGuessedTexts++;
         infoType = 1;
         ToggleInfoTab(true);
@@ -297,7 +288,7 @@ public class GameManager : SingletonMonobehaviour<GameManager>, ISaveable
         infoTabCanvasGroup.blocksRaycasts = val;
         if (val)
         {
-            AudioManager.I.PlayOneShot("Dialoge");
+            audioManager.PlayOneShot("Dialoge");
             infoTextHead.text = Settings.infoStringsHead[infoType];
             switch(infoType)
             {
@@ -328,106 +319,49 @@ public class GameManager : SingletonMonobehaviour<GameManager>, ISaveable
     {
         if (pauseStatus)
         {
-            SaveManager.I.SaveDataToFile();
+            SaveData();
         }
     }
     void OnApplicationFocus(bool hasFocus)
     {
         if (!hasFocus)
         {
-            SaveManager.I.SaveDataToFile();
+            SaveData();
         }
     }
     void OnApplicationQuit()
     {
         Clear();
-        SaveManager.I.SaveDataToFile();
+        SaveData();
     }
 
-    void OnEnable()
+    public void SaveData()
     {
-        ISaveableRegister();
-    }
-    void OnDisable()
-    {
-        ISaveableDeregister();
-    }
+        PlayerPrefs.SetInt("totalIteration", Settings.totalIteration);
+        PlayerPrefs.SetInt("totalGuessedAmount", Settings.totalGuessedAmount);
+        PlayerPrefs.SetInt("totalGuessedTexts", Settings.totalGuessedTexts);
 
-    public void ISaveableRegister()
-    {
-        SaveManager.I.iSaveableObjectList.Add(this);
+        PlayerPrefs.SetString("longestTextGuessed", Settings.longestTextGuessed);
+
+        PlayerPrefs.SetInt("firstTime", (Settings.firstTime ? 1 : 0));
+        PlayerPrefs.SetInt("isMusicEnabled", (Settings.isMusicEnabled ? 1 : 0));
     }
 
-    public void ISaveableDeregister()
+    public void LoadData()
     {
-        SaveManager.I.iSaveableObjectList.Remove(this);
-    }
-
-    public GameObjectSave ISaveableSave()
-    {
-        GameObjectSave.sceneData.Remove(Settings.GameScene);
-
-        SceneSave sceneSave = new SceneSave();
-
-        sceneSave.longDictionary = new Dictionary<string, long>();
-        sceneSave.intDictionary = new Dictionary<string, int>();
-        sceneSave.boolDictionary = new Dictionary<string, bool>();
-        sceneSave.stringDictionary = new Dictionary<string, string>();
-
-        sceneSave.longDictionary.Add("totalIteration", Settings.totalIteration);
-        sceneSave.intDictionary.Add("totalGuessedAmount", Settings.totalGuessedAmount);
-        sceneSave.intDictionary.Add("totalGuessedTexts", Settings.totalGuessedTexts);
-
-        sceneSave.stringDictionary.Add("longestTextGuessed", Settings.longestTextGuessed);
-
-        sceneSave.boolDictionary.Add("firstTime", Settings.firstTime);
-        sceneSave.boolDictionary.Add("isMusicEnabled", Settings.isMusicEnabled);
-
-        GameObjectSave.sceneData.Add(Settings.GameScene, sceneSave);
-        return GameObjectSave;
-    }
-
-
-    public void ISaveableLoad(GameObjectSave gameObjectSave)
-    {
-        if (gameObjectSave.sceneData.TryGetValue(Settings.GameScene, out SceneSave sceneSave))
+        Settings.firstTime = (PlayerPrefs.GetFloat("firstTime") == 1);
+        if (Settings.firstTime)
         {
-            if (sceneSave.longDictionary != null)
-            {
-                if (sceneSave.longDictionary.TryGetValue("totalIteration", out long totalIteration))
-                {
-                    Settings.totalIteration = totalIteration;
-                }
-            }
-            if (sceneSave.intDictionary != null)
-            {
-                if (sceneSave.intDictionary.TryGetValue("totalGuessedAmount", out int totalGuessedAmount))
-                {
-                    Settings.totalGuessedAmount = totalGuessedAmount;
-                }
-                if (sceneSave.intDictionary.TryGetValue("totalGuessedTexts", out int totalGuessedTexts))
-                {
-                    Settings.totalGuessedTexts = totalGuessedTexts;
-                }
-            }
-            if (sceneSave.stringDictionary != null)
-            {
-                if (sceneSave.stringDictionary.TryGetValue("longestTextGuessed", out string longestTextGuessed))
-                {
-                    Settings.longestTextGuessed = longestTextGuessed;
-                }
-            }
-            if (sceneSave.boolDictionary != null)
-            {
-                if (sceneSave.boolDictionary.TryGetValue("firstTime", out bool firstTime))
-                {
-                    Settings.firstTime = firstTime;
-                }
-                if (sceneSave.boolDictionary.TryGetValue("isMusicEnabled", out bool isMusicEnabled))
-                {
-                    Settings.isMusicEnabled = isMusicEnabled;
-                }
-            }
+            Settings.firstTime = false;
+            return;
         }
+
+        Settings.totalIteration = PlayerPrefs.GetInt("totalIteration");
+        Settings.totalGuessedAmount = PlayerPrefs.GetInt("totalGuessedAmount");
+        Settings.totalGuessedTexts = PlayerPrefs.GetInt("totalGuessedTexts");
+
+        Settings.longestTextGuessed = PlayerPrefs.GetString("longestTextGuessed");
+
+        Settings.isMusicEnabled = (PlayerPrefs.GetFloat("isMusicEnabled") == 1);
     }
 }
